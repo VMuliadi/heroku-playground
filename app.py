@@ -1,10 +1,9 @@
 from flask import Flask, request, jsonify, session
-
 import auth
-import random
-import string
+import os
 
 app = Flask(__name__)
+app.secret_key = os.urandom(128).hex()
 
 
 @app.route("/")
@@ -20,11 +19,17 @@ def authentication():
     authentication = auth.Auth()
     token = authentication.login_auth(username, password)
     session["access_token"] = token["access_token"]
+    authentication = None
     if token["access_token"] != "":
       del token["access_token"]
       return jsonify({
         "success": True,
         "message": "Welcome " + token["username"]
+      })
+
+    return jsonify({
+        "success": False,
+        "message": "Failed to authenticate user"
       })
 
 @app.route("/logout", methods=["POST"])
@@ -43,17 +48,20 @@ def logout():
       "message": "User not login to the app yet"
     }), 400
 
+  finally:
+    authentication = None
+
 
 @app.route("/fetch")
 def fetch_data():
   try:
-    authentication = auth.Auth()
     if not authentication.is_expired(session["access_token"]):
       import vgmdb
+      authentication = auth.Auth()
       vgm_fetcher = vgmdb.VGMDB()
-      vgmdb_url = request.values["vgmdb_url"]
+      vgmdb_album_id = request.args.get("vgmdb_album_id")
       vgmdb_filters = request.args.get("vgmdb_filters")
-      tracklist = vgm_fetcher.get_tracklist(vgmdb_url, vgmdb_filters)
+      tracklist = vgm_fetcher.get_tracklist(vgmdb_album_id, vgmdb_filters)
       return jsonify({
         "success": True,
         "tracklist": tracklist,
@@ -74,8 +82,9 @@ def fetch_data():
       "message": "Contact our administrator!"
     }), 500
 
+  finally:
+    authentication = None
+
+
 if __name__ == "__main__":
   app.run(debug=True)
-  app.secret_key = "".join(random.choice(string.ascii_uppercase \
-    + string.ascii_lowercase \
-    + string.digits) for _ in range(256))

@@ -8,7 +8,7 @@ class Auth:
   __MAGIC_WORDS = "am0Aibiiw4eiB3qu"
   __MAGIC_SEPARATOR = "SprTR"
   __VALIDATED_USERNAME = "USERNAME"
-  __VALIDATED_PASSWORD = b'HASHED_PASSWORD'
+  __VALIDATED_PASSWORD = b'BCRYPTED_PASSWORD'
 
 
   def _generate_randstr(self, length):
@@ -19,9 +19,9 @@ class Auth:
 
   def _create_auth_token(self, username):
     expiration_time = str((datetime.today() + timedelta(minutes=4)).strftime("%s"))
-    enc_magic_words = b64encode(self.__MAGIC_WORDS.encode("utf-8")).decode("utf-8") + self.__MAGIC_SEPARATOR + self.generate_randstr(32) + self.__MAGIC_SEPARATOR
+    enc_magic_words = b64encode(self.__MAGIC_WORDS.encode("utf-8")).decode("utf-8") + self.__MAGIC_SEPARATOR + self._generate_randstr(32) + self.__MAGIC_SEPARATOR
     enc_expiration_time = str(b64encode(expiration_time.encode("utf-8")).decode("utf-8")) + self.__MAGIC_SEPARATOR
-    return enc_magic_words + enc_expiration_time + self.generate_randstr(16)
+    return enc_magic_words + enc_expiration_time + self._generate_randstr(16)
 
 
   def is_expired(self, token):
